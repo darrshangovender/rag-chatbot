@@ -1,4 +1,17 @@
+<div align="center">
+
 # RAG Customer-Support Chatbot
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://python.org)
+[![LangChain](https://img.shields.io/badge/LangChain-0.3+-1C3C3C?logo=langchain&logoColor=white)](https://langchain.com)
+[![pgvector](https://img.shields.io/badge/pgvector-0.7+-4169E1?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
+[![Status](https://img.shields.io/badge/Status-Production-success)](#)
+[![Faithfulness](https://img.shields.io/badge/Faithfulness-%3E%200.95-059669)](#evals)
+
+</div>
+
+---
 
 > Retrieval-augmented chatbot over a client knowledge base. Document chunking, embedding pipeline, pgvector storage, semantic retrieval, citation-aware LLM responses. Deflects repetitive support tickets and reduces average handling time.
 
