@@ -19,7 +19,6 @@ from .generate.fallback import (
 from .retrieve.hybrid import HybridRetriever
 from .store.sqlite_store import SqliteStore
 
-
 DB_PATH = os.getenv("RAG_DB_PATH", "./data/index.sqlite")
 ALPHA = float(os.getenv("RAG_ALPHA", "0.6"))
 THRESHOLD = float(os.getenv("RAG_CONFIDENCE_THRESHOLD", str(DEFAULT_THRESHOLD)))
