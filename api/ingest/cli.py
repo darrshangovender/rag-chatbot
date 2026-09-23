@@ -9,10 +9,10 @@ import argparse
 import time
 from pathlib import Path
 
+from ..store.sqlite_store import SqliteStore
 from .chunker import chunk_documents
 from .embedder import embed_texts
 from .loader import load_markdown_dir
-from ..store.sqlite_store import SqliteStore
 
 
 def main() -> None:
@@ -32,7 +32,7 @@ def main() -> None:
     )
     print(f"chunked into {len(chunks)} passages")
 
-    print(f"embedding (this loads the model on first run)...")
+    print("embedding (this loads the model on first run)...")
     vecs = embed_texts([c.text for c in chunks])
     print(f"embeddings shape: {vecs.shape}")
 
