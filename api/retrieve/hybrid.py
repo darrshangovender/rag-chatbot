@@ -63,10 +63,17 @@ class HybridRetriever:
         # --- cosine ---
         qvec = embed_texts([query], normalize=True)[0]
         cos = self.matrix @ qvec  # (N,) since both sides normalized
-        # numerical clip — embeddings are normalized so this should already be in [-1, 1]
-        cos = np.clip(cos, -1.0, 1.0)
-        # remap to [0, 1] so it composes with the [0, 1] BM25 score
-        cos_norm = (cos + 1.0) / 2.0
+        # Clip into [0, 1] so it composes with the [0, 1] BM25 score. Anti-correlated
+        # passages (cos < 0) are "not relevant", same as orthogonal ones — there is no
+        # useful signal in *how* irrelevant they are, so they all floor at 0.
+        #
+        # Do NOT affine-remap via (cos + 1) / 2 here. That maps orthogonal (cos == 0)
+        # to 0.5, which hands every passage a free 0.5 * alpha of score and makes the
+        # confidence-threshold fallback in generate/fallback.py unreachable: the
+        # min-max BM25 term already guarantees one passage scores 1.0, so the top
+        # result could never fall below alpha * 0.5 + (1 - alpha) = 0.7 at alpha=0.6,
+        # well above the 0.45 threshold. See tests/test_fallback.py.
+        cos_norm = np.clip(cos, 0.0, 1.0)
 
         # --- BM25 ---
         bm = np.asarray(self._bm25.get_scores(_tokenize(query)), dtype=np.float32)
