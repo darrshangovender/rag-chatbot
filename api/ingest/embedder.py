@@ -12,8 +12,8 @@ Why local instead of an API:
 from __future__ import annotations
 
 import os
+from collections.abc import Sequence
 from functools import lru_cache
-from typing import Sequence
 
 import numpy as np
 
