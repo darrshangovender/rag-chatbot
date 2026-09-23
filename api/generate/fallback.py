@@ -12,10 +12,10 @@ golden questions in `eval/`. Re-tune on your own corpus before relying on it.
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Sequence
 
 from ..retrieve.hybrid import Retrieved
 
@@ -58,7 +58,7 @@ def open_ticket(
     p = Path(tickets_path)
     p.parent.mkdir(parents=True, exist_ok=True)
     row = {
-        "ts": datetime.now(tz=timezone.utc).isoformat(),
+        "ts": datetime.now(tz=UTC).isoformat(),
         "request_id": request_id,
         "question": question,
         "top_score": top_score,
