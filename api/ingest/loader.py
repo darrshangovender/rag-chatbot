@@ -6,10 +6,10 @@ the downstream chunker, embedder, and citation guard need.
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterator
 
 
 @dataclass
@@ -53,7 +53,7 @@ def load_markdown_dir(root: str | os.PathLike[str]) -> Iterator[Document]:
             continue
         text = path.read_text(encoding="utf-8")
         rel = path.relative_to(root_path).as_posix()
-        mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
+        mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC).isoformat()
         yield Document(
             source_path=rel,
             title=_extract_title(text, fallback=path.stem),
