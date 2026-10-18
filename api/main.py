@@ -6,6 +6,7 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
@@ -60,7 +61,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="RAG chatbot reference",
-    version="0.1.0",
+    version="0.1.1",
     description="Hybrid-retrieval, citation-guarded RAG over a markdown KB.",
     lifespan=lifespan,
 )
@@ -102,6 +103,9 @@ async def ask(req: AskRequest) -> AskResponse:
     except KeyError as e:
         # ANTHROPIC_API_KEY missing when provider=anthropic
         raise HTTPException(500, f"LLM config error: missing env var {e}") from e
+    except httpx.HTTPError as e:
+        # Upstream model API failure: a bad gateway, not an unhandled server error.
+        raise HTTPException(502, f"LLM request failed: {type(e).__name__}") from e
 
     cited_paths = set(answer.citations)
     citations = [

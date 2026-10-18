@@ -8,8 +8,8 @@ Why SQLite for a reference impl:
 - Zero infra. `make seed && make run` works on a laptop with no Docker.
 - The hybrid retriever loads all vectors into memory and computes cosine in
   numpy. For demo corpora (<10k chunks) this is faster than a vector index.
-- Production swap to pgvector is documented in `docs/swap-to-pgvector.md`;
-  the API surface (`Store.search_*`) is the seam.
+- A larger corpus would move retrieval into a vector index (for example
+  pgvector); `load_all()` is the seam to replace.
 """
 from __future__ import annotations
 
@@ -83,7 +83,7 @@ class SqliteStore:
         dim = int(embeddings.shape[1])
         ids: list[int] = []
         cur = self._conn.cursor()
-        for chunk, vec in zip(chunks_list, embeddings):
+        for chunk, vec in zip(chunks_list, embeddings, strict=True):
             cur.execute(
                 """INSERT INTO chunks
                        (source_path, section_path, text, last_modified, chunk_index, extra_json)
@@ -126,8 +126,7 @@ class SqliteStore:
     def load_all(self) -> tuple[list[StoredChunk], np.ndarray]:
         """Load every chunk + its embedding into memory.
 
-        Fine for demo corpora. For production scale, push retrieval into
-        Postgres+pgvector — see docs/swap-to-pgvector.md.
+        Fine for demo corpora. At larger scale, push retrieval into a vector index.
         """
         rows = self._conn.execute(
             """SELECT c.id, c.source_path, c.section_path, c.text,

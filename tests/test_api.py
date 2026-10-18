@@ -152,6 +152,19 @@ def test_missing_api_key_surfaces_as_a_config_error_not_a_crash(client, monkeypa
     assert "ANTHROPIC_API_KEY" in resp.json()["detail"]
 
 
+def test_upstream_llm_failure_is_a_502_not_an_unhandled_500(client, monkeypatch):
+    """Regression (0.1.1): an httpx error from the model API escaped as a bare 500."""
+    import httpx
+
+    async def fail(*a, **kw):
+        raise httpx.ConnectError("boom")
+
+    monkeypatch.setattr(main_module, "generate_answer", fail)
+    resp = client.post("/ask", json={"question": GOOD_QUESTION})
+    assert resp.status_code == 502
+    assert "ConnectError" in resp.json()["detail"]
+
+
 def test_each_request_gets_a_distinct_id(client):
     ids = {
         client.post("/ask", json={"question": GOOD_QUESTION}).json()["request_id"]

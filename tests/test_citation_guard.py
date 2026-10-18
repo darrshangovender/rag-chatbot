@@ -120,6 +120,23 @@ def test_empty_input_is_handled():
     assert _strip_uncited_sentences("", n_passages=3) == ("", [])
 
 
+def test_marker_after_the_full_stop_does_not_shield_the_next_sentence():
+    """Regression (0.1.1): `claim. [1] Next.` used to be one 'sentence', so an uncited
+    follow-on sentence survived because the first one was cited."""
+    cleaned, cited = _strip_uncited_sentences(
+        "Refunds are pro-rated. [1] We also give a free hat.", n_passages=2
+    )
+    assert "hat" not in cleaned
+    assert cleaned == "Refunds are pro-rated [1]."
+    assert cited == [1]
+
+
+def test_adjacent_markers_after_the_full_stop_are_all_credited():
+    cleaned, cited = _strip_uncited_sentences("Both agree. [1][2] Unsupported aside.", n_passages=2)
+    assert cleaned == "Both agree [1][2]."
+    assert cited == [1, 2]
+
+
 # --------------------------------------------------------------------------- #
 # Context block
 # --------------------------------------------------------------------------- #
@@ -162,7 +179,8 @@ def test_extractive_answer_uses_at_most_the_top_three_passages():
 def test_extractive_answer_takes_only_the_first_two_sentences():
     passages = [retrieved("One. Two. Three. Four.", rank=1)]
     text = _extractive_answer("q", passages)
-    assert text == "One. Two. [1]"
+    # Each sentence carries its own marker (see the regression tests below).
+    assert text == "One. [1] Two. [1]"
 
 
 def test_extractive_answer_falls_back_when_every_passage_is_blank():
@@ -188,6 +206,21 @@ async def test_extractive_path_returns_citations_for_the_passages_it_used():
     answer = await generate_answer("how do refunds work", passages)
     assert answer.grounded is True
     assert answer.citations == ["pricing/billing.md", "features/sprints.md"]
+
+
+async def test_extractive_answer_keeps_every_sentence_and_attributes_it_correctly():
+    """Regression (0.1.1): the first sentence of each two-sentence passage was deleted
+    by the stripper, and the next passage's first sentence was filed under [1]."""
+    passages = [
+        retrieved("Alpha one. Alpha two.", source_path="a.md", rank=1),
+        retrieved("Beta one. Beta two.", source_path="b.md", rank=2),
+    ]
+    answer = await generate_answer("q", passages)
+    for sentence in ("Alpha one", "Alpha two", "Beta one", "Beta two"):
+        assert sentence in answer.text
+    assert "Beta one [2]" in answer.text
+    assert "Alpha two [1]" in answer.text
+    assert answer.citations == ["a.md", "b.md"]
 
 
 async def test_citations_are_deduplicated_preserving_passage_order():

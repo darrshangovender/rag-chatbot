@@ -6,8 +6,9 @@ retrieval and refuse to guess. Instead we:
 1. Reply with the "opening a ticket" message.
 2. Append a JSON line to `tickets.jsonl` so a human can follow up.
 
-Threshold tuning: the default 0.45 is calibrated against the demo corpus +
-golden questions in `eval/`. Re-tune on your own corpus before relying on it.
+Threshold tuning: the default 0.45 is a hand-set default, not a tuned value. On the
+demo corpus and the questions in `eval/run_eval.py` it catches most but not all
+out-of-scope questions (see the README Results). Re-tune on your own corpus.
 """
 from __future__ import annotations
 

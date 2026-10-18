@@ -1,6 +1,6 @@
 """Citation-guarded answer generation.
 
-Two layers of defense against hallucination (see docs/prompt-design.md):
+Two layers of defense against hallucination:
 
 1. **Prompt contract.** The system prompt forbids any claim not grounded in
    the numbered context. The model is told to cite chunk numbers like `[1]`
@@ -65,12 +65,27 @@ def _build_context_block(passages: Sequence[Retrieved]) -> str:
     return "\n".join(lines).rstrip()
 
 
+_TRAILING_MARKERS_RE = re.compile(r"([.!?])[ \t]*((?:\[\d+\][ \t]*)+)(?=\s|$)")
+
+
+def _markers_before_punctuation(text: str) -> str:
+    """Rewrite ``claim. [1] Next`` as ``claim [1]. Next``.
+
+    Models often put the marker after the full stop. ``SENTENCE_RE`` only splits
+    on a full stop that is directly followed by whitespace, so a marker in between
+    glued two sentences together and the uncited one rode along on the cited one.
+    """
+    return _TRAILING_MARKERS_RE.sub(
+        lambda m: " " + "".join(re.findall(r"\[\d+\]", m.group(2))) + m.group(1), text
+    )
+
+
 def _strip_uncited_sentences(text: str, n_passages: int) -> tuple[str, list[int]]:
     """Drop every sentence that lacks a `[n]` marker with n in [1, n_passages].
 
     Returns (cleaned_text, list_of_cited_indices_1_based).
     """
-    sentences = SENTENCE_RE.split(text.strip())
+    sentences = SENTENCE_RE.split(_markers_before_punctuation(text.strip()))
     kept: list[str] = []
     cited: set[int] = set()
     for sent in sentences:
@@ -86,15 +101,15 @@ def _extractive_answer(question: str, passages: Sequence[Retrieved]) -> str:
     """Fallback when no LLM provider is configured.
 
     Strategy: take the first 1-2 sentences of each of the top 3 passages and
-    tag them with [n]. Not pretty, not conversational, but it's grounded by
-    construction and lets `make eval` run with no API key.
+    tag EACH sentence with its own [n]. Not pretty, not conversational, but it's
+    grounded by construction and runs with no API key. (Tagging only the end of
+    the pair made the stripper delete the first sentence and attach the next
+    passage's first sentence to the wrong citation.)
     """
     out: list[str] = []
     for i, p in enumerate(passages[:3], start=1):
-        sents = SENTENCE_RE.split(p.chunk.text.strip())
-        snippet = " ".join(sents[:2]).strip()
-        if snippet:
-            out.append(f"{snippet} [{i}]")
+        sents = [s.strip() for s in SENTENCE_RE.split(p.chunk.text.strip()) if s.strip()]
+        out.extend(f"{s} [{i}]" for s in sents[:2])
     return " ".join(out) if out else "I don't have that information in my knowledge base."
 
 
@@ -103,7 +118,7 @@ async def _anthropic_answer(question: str, context_block: str) -> str:
     import httpx
 
     api_key = os.environ["ANTHROPIC_API_KEY"]
-    model = os.getenv("LLM_MODEL", "claude-3-5-haiku-latest")
+    model = os.getenv("LLM_MODEL", "claude-haiku-4-5")
     user_msg = f"Context passages:\n{context_block}\n\nQuestion: {question}"
     async with httpx.AsyncClient(timeout=30.0) as client:
         r = await client.post(

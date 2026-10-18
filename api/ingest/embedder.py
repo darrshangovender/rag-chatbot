@@ -5,9 +5,9 @@ good enough to demonstrate hybrid retrieval ranking behaviour. Swap the model
 name via the `EMBED_MODEL` env var if you want a stronger encoder.
 
 Why local instead of an API:
-- Reference implementation should run offline after `make seed`.
+- Reference implementation should run offline after `make seed` (the first run
+  downloads the model once).
 - Eval numbers in the README are reproducible without an API key.
-- Production swap: see `docs/swap-to-pgvector.md`.
 """
 from __future__ import annotations
 
